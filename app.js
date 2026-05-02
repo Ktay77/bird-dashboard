@@ -1,4 +1,5 @@
 'use strict';
+console.log('app.js started, CONFIG is:', typeof CONFIG);
 
 /* ══════════════════════════════════════════════════════════════════
    CACHE  —  localStorage wrapper with TTL
@@ -873,4 +874,9 @@ const App = {
   },
 };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+console.log('app.js fully parsed');
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired');
+  App.init();
+  console.log('App.init() completed');
+});
