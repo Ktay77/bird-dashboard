@@ -1,22 +1,7 @@
 {
-  "builds": [
-    {
-      "src": "api/ebird.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "*.{html,js,css}",
-      "use": "@vercel/static"
+  "functions": {
+    "api/ebird.js": {
+      "maxDuration": 10
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/ebird",
-      "dest": "/api/ebird.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  }
 }
