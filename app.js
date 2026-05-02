@@ -309,15 +309,15 @@ const Utils = {
 const state = {
   mode: 'find-bird',
   modeA: {
-    species: null,         // { speciesCode, comName, sciName }
-    lat: CONFIG.DEFAULT_LAT,
-    lng: CONFIG.DEFAULT_LNG,
-    locationName: CONFIG.DEFAULT_LOCATION_NAME,
+    species: null,
+    lat: null,
+    lng: null,
+    locationName: null,
   },
   modeB: {
-    hotspot: null,         // { locId?, locName, lat, lng }
+    hotspot: null,
     day: new Date().getDay(),
-    time: null,            // will be set on init
+    time: null,
   },
   modeC: {
     lat: null,
@@ -668,6 +668,9 @@ const ModeC = {
 const App = {
 
   init() {
+    state.modeA.lat = CONFIG.DEFAULT_LAT;
+    state.modeA.lng = CONFIG.DEFAULT_LNG;
+    state.modeA.locationName = CONFIG.DEFAULT_LOCATION_NAME;
     this._checkApiKey();
     this._setDefaultTime();
     this._wireTabBar();
