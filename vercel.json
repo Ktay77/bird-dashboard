@@ -18,10 +18,5 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "functions": {
-    "api/ebird.js": {
-      "maxDuration": 10
-    }
-  }
+  ]
 }
