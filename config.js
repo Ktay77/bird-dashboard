@@ -3,7 +3,7 @@
 // Edit the values below to match your setup, then save.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CONFIG = {
+var CONFIG = {
 
   // ── API KEY ────────────────────────────────────────────────────────────────
   // Get a free key at: https://ebird.org/api/keygen
