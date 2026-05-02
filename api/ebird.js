@@ -15,9 +15,7 @@ const ALLOWED_PREFIXES = [
   'ref/taxonomy/ebird',
   'ref/hotspot/geo',
   'ref/hotspot/info/',
-  'data/obs/geo/recent',
-  'data/obs/geo/recent/notable',
-  'data/obs/L',               // hotspot observations: data/obs/L12345/recent
+  'data/obs/',                 // covers geo, hotspot (L*), and region (AU-NSW/…) endpoints
   'product/lists/',
 ];
 
