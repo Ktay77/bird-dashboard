@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/ebird.js": {
+      "maxDuration": 10
+    }
+  }
+}

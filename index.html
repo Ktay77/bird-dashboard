@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Bird Dash">
+  <meta name="theme-color" content="#2d6a4f">
+  <title>Bird Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <span class="app-logo">🦜</span>
+      <h1 class="app-title">Bird Dashboard</h1>
+    </div>
+    <nav class="tab-bar" role="tablist" aria-label="Modes">
+      <button class="tab-btn active" data-mode="find-bird" role="tab" aria-selected="true">
+        <span class="tab-icon">🔍</span>
+        <span class="tab-label">Find Bird</span>
+      </button>
+      <button class="tab-btn" data-mode="find-place" role="tab" aria-selected="false">
+        <span class="tab-icon">📍</span>
+        <span class="tab-label">Find Place</span>
+      </button>
+      <button class="tab-btn" data-mode="near-me" role="tab" aria-selected="false">
+        <span class="tab-icon">🗺</span>
+        <span class="tab-label">Near Me</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- ── MAIN ───────────────────────────────────────────────────────── -->
+  <main class="app-main">
+
+    <!-- MODE A: Find Bird X ----------------------------------------- -->
+    <section id="find-bird" class="mode-panel active" role="tabpanel" aria-label="Find a bird">
+
+      <div class="card">
+        <label class="field-label" for="species-input">Which bird?</label>
+        <div class="input-wrap">
+          <input
+            type="text"
+            id="species-input"
+            class="field-input"
+            placeholder="e.g. Superb Fairy-wren, Lyrebird…"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <button class="clear-btn" id="clear-species" aria-label="Clear species" hidden>✕</button>
+        </div>
+        <ul id="species-suggestions" class="suggestions-list" hidden role="listbox" aria-label="Species suggestions"></ul>
+
+        <label class="field-label" for="location-input-a">Where? <span class="field-hint">(default: Hornsby)</span></label>
+        <div class="input-wrap">
+          <input
+            type="text"
+            id="location-input-a"
+            class="field-input"
+            placeholder="Suburb, park or postcode"
+          >
+          <button class="gps-btn" id="gps-a" aria-label="Use my location" title="Use GPS location">📍</button>
+        </div>
+
+        <button class="btn-primary" id="find-bird-btn">Search hotspots</button>
+      </div>
+
+      <div id="find-bird-status" class="status-msg" hidden></div>
+      <div id="find-bird-results" class="results-section" hidden></div>
+
+    </section>
+
+    <!-- MODE B: Find Place Y at Time Z ------------------------------- -->
+    <section id="find-place" class="mode-panel" role="tabpanel" aria-label="Find birds at a place" hidden>
+
+      <div class="card">
+        <label class="field-label" for="place-input">Where are you going?</label>
+        <div class="input-wrap">
+          <input
+            type="text"
+            id="place-input"
+            class="field-input"
+            placeholder="Hotspot, suburb or park…"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <button class="gps-btn" id="gps-b" aria-label="Use my location" title="Use GPS location">📍</button>
+        </div>
+        <ul id="place-suggestions" class="suggestions-list" hidden role="listbox" aria-label="Place suggestions"></ul>
+
+        <div id="selected-place-badge" class="selected-badge" hidden>
+          <span id="selected-place-name"></span>
+          <button class="badge-clear" id="clear-place" aria-label="Clear selected place">✕</button>
+        </div>
+
+        <div class="time-row">
+          <div class="time-field">
+            <label class="field-label" for="day-select">Day</label>
+            <select id="day-select" class="field-select">
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+          <div class="time-field">
+            <label class="field-label" for="time-input">Time</label>
+            <input type="time" id="time-input" class="field-input" value="07:00">
+          </div>
+        </div>
+
+        <button class="btn-primary" id="find-place-btn">What will I see?</button>
+      </div>
+
+      <div id="find-place-status" class="status-msg" hidden></div>
+      <div id="find-place-results" class="results-section" hidden></div>
+
+    </section>
+
+    <!-- MODE C: Near Me ---------------------------------------------- -->
+    <section id="near-me" class="mode-panel" role="tabpanel" aria-label="Birds near me" hidden>
+
+      <div class="card card-center">
+        <p class="hint-text">Finds eBird hotspots within <strong id="radius-hint">20 km</strong> and shows which birds have been seen recently — weighted to the current time of day.</p>
+        <button class="btn-primary btn-large" id="near-me-btn">
+          <span class="btn-icon">📍</span> Find Birds Near Me
+        </button>
+        <p class="gps-note">Requires location permission.</p>
+      </div>
+
+      <div id="near-me-status" class="status-msg" hidden></div>
+      <div id="near-me-results" class="results-section" hidden></div>
+
+    </section>
+
+  </main>
+
+  <!-- ── LOADING OVERLAY ───────────────────────────────────────────── -->
+  <div id="loading-overlay" class="loading-overlay" hidden aria-live="polite" aria-label="Loading">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p id="loading-msg">Fetching bird data…</p>
+    </div>
+  </div>
+
+  <!-- ── API KEY NOTICE ────────────────────────────────────────────── -->
+  <div id="api-key-notice" class="api-key-notice" hidden>
+    <p>⚠️ No eBird API key found. Open <code>config.js</code> and add your key (or set <code>EBIRD_API_KEY</code> in Vercel environment variables). Get a free key at <a href="https://ebird.org/api/keygen" target="_blank" rel="noopener">ebird.org/api/keygen</a>.</p>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
