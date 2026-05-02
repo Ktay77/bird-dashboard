@@ -70,9 +70,20 @@ const eBird = {
     }
   },
 
-  searchTaxonomy(q) {
-    return this._call('ref/taxonomy/ebird', { q, locale: 'en', fmt: 'json', maxResults: '20' });
-  },
+ searchTaxonomy(q) {
+  return this._call('ref/taxonomy/ebird', { 
+    locale: 'en', 
+    fmt: 'json', 
+    maxResults: '5000',
+    regionCode: 'AU',
+  }).then(data => {
+    const lower = q.toLowerCase();
+    return data.filter(r => 
+      r.comName.toLowerCase().includes(lower) ||
+      r.sciName.toLowerCase().includes(lower)
+    ).slice(0, 20);
+  });
+},
 
   nearbySpeciesObs(speciesCode, lat, lng) {
     return this._call(`data/obs/geo/recent/${speciesCode}`, {
