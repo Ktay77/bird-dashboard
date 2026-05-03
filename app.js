@@ -70,20 +70,20 @@ const eBird = {
     }
   },
 
- searchTaxonomy(q) {
-  return this._call('ref/taxonomy/ebird', { 
-    locale: 'en', 
-    fmt: 'json', 
-    maxResults: '5000',
-    regionCode: 'AU',
-  }).then(data => {
-    const lower = q.toLowerCase();
-    return data.filter(r => 
-      r.comName.toLowerCase().includes(lower) ||
-      r.sciName.toLowerCase().includes(lower)
-    ).slice(0, 20);
-  });
-},
+  searchTaxonomy(q) {
+    return this._call('ref/taxonomy/ebird', {
+      locale: 'en',
+      fmt: 'json',
+      maxResults: '5000',
+      regionCode: 'AU',
+    }).then(data => {
+      const lower = q.toLowerCase();
+      return data.filter(r =>
+        r.comName.toLowerCase().includes(lower) ||
+        r.sciName.toLowerCase().includes(lower)
+      ).slice(0, 20);
+    });
+  },
 
   nearbySpeciesObs(speciesCode, lat, lng) {
     return this._call(`data/obs/geo/recent/${speciesCode}`, {
@@ -106,6 +106,14 @@ const eBird = {
 
   hotspotObs(locId) {
     return this._call(`data/obs/${locId}/recent`, {
+      back: 30,
+      includeProvisional: 'true',
+      maxResults: '200',
+    });
+  },
+
+  hotspotSpeciesObs(locId, speciesCode) {
+    return this._call(`data/obs/${locId}/recent/${speciesCode}`, {
       back: 30,
       includeProvisional: 'true',
       maxResults: '200',
@@ -397,26 +405,26 @@ const UI = {
   },
 
   /* Build HTML for a list of hotspots (Mode A result) */
-  renderHotspots(hotspots, speciesName) {
+  renderHotspots(hotspots, speciesName, speciesCode) {
     if (!hotspots.length) {
       return `<div class="no-results">No recent ${Utils.escapeHtml(speciesName)} sightings found within ${CONFIG.DEFAULT_RADIUS_KM} km in the last ${CONFIG.DAYS_BACK} days.</div>`;
     }
     const heading = `<p class="results-heading">${hotspots.length} hotspot${hotspots.length !== 1 ? 's' : ''} with recent ${Utils.escapeHtml(speciesName)}</p>`;
-    const cards = hotspots.map(h => {
-      const timePart = h.bestTime
-        ? `<span class="meta-pill highlight">${h.bestTime.emoji} Best: ${h.bestTime.label}</span>`
-        : '';
-      return `
-        <div class="hotspot-card">
+    const cards = hotspots.map(h => `
+      <div class="hotspot-card expandable" data-loc-id="${Utils.escapeHtml(h.locId)}" data-species-code="${Utils.escapeHtml(speciesCode)}">
+        <div class="hotspot-card-header">
           <div class="hotspot-name">${Utils.escapeHtml(h.locName)}</div>
           <div class="hotspot-meta">
             <span class="meta-pill">📍 ${h.distance.toFixed(1)} km</span>
             <span class="meta-pill">🗓 Last: ${Utils.relativeDate(h.latestObsDt)}</span>
             <span class="meta-pill">📋 ${h.count} report${h.count !== 1 ? 's' : ''}</span>
-            ${timePart}
           </div>
-        </div>`;
-    }).join('');
+        </div>
+        <div class="hotspot-time-panel" hidden>
+          <div class="time-bar-loading">Loading sighting times…</div>
+        </div>
+      </div>`
+    ).join('');
     return heading + cards;
   },
 
@@ -462,6 +470,81 @@ const UI = {
     return `<p class="results-heading">Nearby eBird hotspots</p>
             <div class="hotspot-list-card">${items}</div>`;
   },
+
+  /* 24-hour sighting heat bar */
+  renderTimeBar(observations) {
+    // Build 24 buckets (one per hour)
+    const buckets = new Array(24).fill(0);
+    let timed = 0;
+    for (const obs of observations) {
+      if (!obs.obsDt) continue;
+      const parts = obs.obsDt.split(' ');
+      if (parts.length < 2) continue;
+      const h = parseInt(parts[1], 10);
+      if (isNaN(h) || h < 0 || h > 23) continue;
+      buckets[h]++;
+      timed++;
+    }
+
+    if (timed < 2) {
+      return `<div class="time-bar-empty">Not enough timed records to show a pattern (${timed} found).</div>`;
+    }
+
+    const max = Math.max(...buckets, 1);
+
+    // Colour interpolation: light mint → deep forest green
+    const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+    const colourFor = (count) => {
+      const t = count / max;
+      if (t === 0) return '#e8f5e9';
+      const r = lerp(187, 27, t);
+      const g = lerp(223, 94, t);
+      const b = lerp(200, 32, t);
+      return `rgb(${r},${g},${b})`;
+    };
+
+    const LABELS = ['12am','','2','','4','','6','','8','','10','','12pm','','2','','4','','6','','8','','10',''];
+    const W = 480, H = 44, LABEL_H = 14;
+    const cellW = W / 24;
+
+    const rects = buckets.map((count, i) => {
+      const fill = colourFor(count);
+      const x = i * cellW;
+      const title = `${i}:00–${i + 1}:00 · ${count} sighting${count !== 1 ? 's' : ''}`;
+      return `<rect x="${x.toFixed(1)}" y="0" width="${(cellW - 1).toFixed(1)}" height="${H}" fill="${fill}" rx="2">
+        <title>${title}</title></rect>`;
+    }).join('');
+
+    const labels = LABELS.map((lbl, i) => {
+      if (!lbl) return '';
+      const x = i * cellW + cellW / 2;
+      return `<text x="${x.toFixed(1)}" y="${H + LABEL_H}" text-anchor="middle" font-size="9" fill="#5a7a6a">${lbl}</text>`;
+    }).join('');
+
+    // Peak hour marker
+    const peakHour = buckets.indexOf(max);
+    const peakLabel = `${peakHour}:00`;
+    const peakX = (peakHour * cellW + cellW / 2).toFixed(1);
+
+    const bestPeriod = Utils.analyzeObsTimes(observations);
+    const bestLine = bestPeriod
+      ? `<p class="time-bar-best">${bestPeriod.emoji} Best time: <strong>${bestPeriod.label}</strong> · Peak around ${peakLabel}</p>`
+      : `<p class="time-bar-best">⏱ Peak sightings around ${peakLabel}</p>`;
+
+    return `
+      ${bestLine}
+      <div class="time-bar-wrap">
+        <svg viewBox="0 0 ${W} ${H + LABEL_H + 2}" xmlns="http://www.w3.org/2000/svg" class="time-bar-svg">
+          ${rects}
+          <polygon points="${peakX},${(H - 7).toFixed(1)} ${(parseFloat(peakX) - 4).toFixed(1)},${H} ${(parseFloat(peakX) + 4).toFixed(1)},${H}" fill="#1b5e20" opacity="0.8"/>
+          ${labels}
+        </svg>
+        <div class="time-bar-legend">
+          <span class="legend-swatch" style="background:#e8f5e9"></span> Rarely seen
+          <span class="legend-swatch" style="background:#1b5e20; margin-left:10px"></span> Most sightings
+        </div>
+      </div>`;
+  },
 };
 
 /* ══════════════════════════════════════════════════════════════════
@@ -485,7 +568,8 @@ const ModeA = {
     try {
       const obs = await eBird.nearbySpeciesObs(speciesCode, lat, lng);
       const hotspots = this._processObs(obs, lat, lng);
-      UI.showResults('find-bird-results', UI.renderHotspots(hotspots, comName));
+      UI.showResults('find-bird-results', UI.renderHotspots(hotspots, comName, speciesCode));
+      this._wireHotspotExpand();
     } catch (err) {
       UI.showStatus('find-bird-status', `Error: ${err.message}`, 'error');
     } finally {
@@ -504,7 +588,6 @@ const ModeA = {
         const first = obs[0];
         const dist  = Geo.distance(userLat, userLng, first.lat, first.lng);
         const sorted = [...obs].sort((a, b) => new Date(b.obsDt) - new Date(a.obsDt));
-        const bestTime = Utils.analyzeObsTimes(obs);
         return {
           locId: first.locId,
           locName: first.locName,
@@ -513,13 +596,46 @@ const ModeA = {
           distance: dist,
           count: obs.length,
           latestObsDt: sorted[0]?.obsDt,
-          bestTime,
           // Score: reports per km (higher = better)
           score: obs.length / Math.max(dist, 0.5),
         };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 20);
+  },
+
+  _wireHotspotExpand() {
+    document.querySelectorAll('.hotspot-card.expandable').forEach(card => {
+      card.querySelector('.hotspot-card-header').addEventListener('click', async () => {
+        const panel = card.querySelector('.hotspot-time-panel');
+        const isOpen = !panel.hidden;
+
+        // Collapse all others
+        document.querySelectorAll('.hotspot-time-panel').forEach(p => { p.hidden = true; });
+        document.querySelectorAll('.hotspot-card.expandable').forEach(c => c.classList.remove('open'));
+
+        if (isOpen) return; // toggle off
+
+        panel.hidden = false;
+        card.classList.add('open');
+
+        // Already loaded?
+        if (panel.dataset.loaded) return;
+
+        const locId = card.dataset.locId;
+        const speciesCode = card.dataset.speciesCode;
+
+        try {
+          const obs = await eBird.hotspotSpeciesObs(locId, speciesCode);
+          panel.innerHTML = obs.length
+            ? UI.renderTimeBar(obs)
+            : `<div class="time-bar-empty">No timed records found for this hotspot.</div>`;
+          panel.dataset.loaded = 'true';
+        } catch (err) {
+          panel.innerHTML = `<div class="time-bar-empty">Could not load sighting times: ${Utils.escapeHtml(err.message)}</div>`;
+        }
+      });
+    });
   },
 };
 
